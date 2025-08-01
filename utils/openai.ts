@@ -1,4 +1,3 @@
-// backend/utils/openai.ts
 import OpenAI from "openai";
 import { dqScoringPrompt } from "./prompts";
 
@@ -28,17 +27,15 @@ export async function scoreDQ(userInput: string) {
 
   let text = chat.choices[0]?.message?.content || '{}';
 
-  // Remove markdown fencing like ```json or ```
+  // Remove markdown fences like ```json or ```
   text = text
     .replace(/```json/g, '')
     .replace(/```/g, '')
     .trim();
 
-  // Try parsing clean JSON first
   try {
     return JSON.parse(text);
   } catch (e) {
-    // Fallback: extract just the first {...} block
     const match = text.match(/\{[\s\S]*?\}/);
     if (match) {
       return JSON.parse(match[0]);
