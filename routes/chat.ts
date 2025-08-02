@@ -10,9 +10,11 @@ type DQDimension = 'framing' | 'alternatives' | 'information' | 'values' | 'reas
 const sessionState: Record<string, {
   turnsUsed: number;
   dqCoverage: Record<DQDimension, boolean>;
+  dqCumulativeScore: Record<DQDimension, number>;
 }> = {};
 
 const MAX_TURNS = 12;
+const COVERAGE_THRESHOLD = 0.6;  // Cumulative score needed to count a DQ dimension as "covered"
 
 router.post('/', async (req, res) => {
   const userMessage: string = req.body.message;
@@ -29,6 +31,14 @@ router.post('/', async (req, res) => {
         values: false,
         reasoning: false,
         commitment: false
+      },
+      dqCumulativeScore: {
+        framing: 0,
+        alternatives: 0,
+        information: 0,
+        values: 0,
+        reasoning: 0,
+        commitment: 0
       }
     };
   }
@@ -44,9 +54,13 @@ router.post('/', async (req, res) => {
     const dqScore = await scoreDQ(userMessage);
     console.log("DQ Score:", dqScore);
 
-    // Update DQ coverage if score >= 0.3
+    // Update cumulative scores and coverage
     for (const dimension of Object.keys(dqScore) as DQDimension[]) {
-      if (dqScore[dimension] >= 0.3) {
+      const currentScore = dqScore[dimension].score;
+      sessionState[sessionId].dqCumulativeScore[dimension] += currentScore;
+      console.log(`Cumulative ${dimension}:`, sessionState[sessionId].dqCumulativeScore[dimension]);
+
+      if (sessionState[sessionId].dqCumulativeScore[dimension] >= COVERAGE_THRESHOLD) {
         sessionState[sessionId].dqCoverage[dimension] = true;
       }
     }
